@@ -33,6 +33,7 @@ public class Chatserver implements IChatserverCli, Runnable {
 	private List<PrintWriter> publicWriter;
 
 	/**
+	 * 
 	 * @param componentName
 	 *            the name of the component - represented in the prompt
 	 * @param config
