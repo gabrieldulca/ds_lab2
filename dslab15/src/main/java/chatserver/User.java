@@ -19,7 +19,13 @@ public class User {
 		isRegistered = false;
 	}
 
-	public String getUsername() {
+    public User(String username, String ip, boolean isRegistered) {
+        this.username = username;
+        this.ip = ip;
+        this.isRegistered = isRegistered;
+    }
+
+    public String getUsername() {
 		return username;
 	}
 
