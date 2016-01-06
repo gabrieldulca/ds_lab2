@@ -68,21 +68,26 @@ public class ServerTCPListenerThread extends Thread {
 						writer.println(response);
 					}
 					else{
+						
 						if (this.checkSession(request)) {
 							validsession = true;
 						} else {
 							writer.println("Invalid session");
 							break;
 						}
-						System.out.println("Client sent the following request: " + request);
+						
+						try {
+							String decryptedRequest = new String (SecurityUtils.decryptMessageAES(request.getBytes(), this.sessionKey, this.sessionIV));
+						
+						System.out.println("Client sent the following request: " + decryptedRequest);
 	
-						String[] parts = request.split(" ");
+						String[] parts = decryptedRequest.split(" ");
 	
 						String response = "!error provided message does not fit the expected format: "
 								+ "!ping <client-name> or !stop <client-name>";
 	
 						writer.flush();
-						if(request.startsWith("!login")){
+						if(decryptedRequest.startsWith("!login")){
 							boolean boo = false;
 							for(User u : users){
 								if(u.getUsername().equals(parts[1])){
@@ -98,7 +103,7 @@ public class ServerTCPListenerThread extends Thread {
 							}
 							if(!boo)
 								writer.println("login failed");
-						}else if(request.startsWith("!logout")){
+						}else if(decryptedRequest.startsWith("!logout")){
 							boolean boo = false;
 							for(User u : users){
 								if(u.getUsername().equals(parts[1])){
@@ -115,12 +120,16 @@ public class ServerTCPListenerThread extends Thread {
 							}
 							if(!boo)
 								writer.println("logout failed");
-						}else if(request.startsWith("!send")){
+						}else if(decryptedRequest.startsWith("!send")){
 							for(PrintWriter w : publicWriter){
-								w.println("public " + parts[1] + ": " + request.substring(request.lastIndexOf(parts[1]) + parts[1].length() + 1));
+								String r = "public " + parts[1] + ": " + decryptedRequest.substring(decryptedRequest.lastIndexOf(parts[1]) + parts[1].length() + 1);
+								String cliResponse = new String(SecurityUtils.encryptMessageAES(r.getBytes(), this.sessionKey,
+										this.sessionIV));
+
+								w.println(cliResponse);
 							}
 							//writer.println("public " + parts[1] + ": " + request.substring(request.lastIndexOf(parts[1]) + parts[1].length() + 1));
-						}else if(request.startsWith("!register")){
+						}else if(decryptedRequest.startsWith("!register")){
 							String[] adress = parts[1].split(":");
 							for(User u : users){
 								if(u.getUsername().equals(parts[2])){
@@ -128,27 +137,65 @@ public class ServerTCPListenerThread extends Thread {
 										u.setIp(adress[0]);
 										u.setPort(adress[1]);
 										u.setRegistered(true);
-										writer.println("Successfully registered address for " + u.getUsername());
+										String r = "Successfully registered address for " + u.getUsername();
+										String cliResponse = new String(SecurityUtils.encryptMessageAES(r.getBytes(), this.sessionKey,
+												this.sessionIV));
+
+										writer.println(cliResponse);
+										
 									}
 								}
 							}
-						}else if(request.startsWith("!lookup")){
+						}else if(decryptedRequest.startsWith("!lookup")){
 							boolean boo = false;
 							for(User u : users){
 								if(u.getUsername().equals(parts[1])){
 									if(u.isOnline() && u.isRegistered()){
 										synchronized(this){
-											writer.println(u.getIp()+":"+u.getPort());
+											String r = u.getIp()+":"+u.getPort();
+											String cliResponse = new String(SecurityUtils.encryptMessageAES(r.getBytes(), this.sessionKey,
+													this.sessionIV));
+
+											writer.println(cliResponse);
+											
 											boo = true;
 										}
 									}
 								}
 							}
-							if(!boo)
-								writer.println("userN/A");
+							if(!boo) {
+								String r = "userN/A";
+								String cliResponse = new String(SecurityUtils.encryptMessageAES(r.getBytes(), this.sessionKey,
+										this.sessionIV));
+
+								writer.println(cliResponse);
+							}
 						}else{
-							writer.println("Error: Unknown command");
+							String r = "Error: Unknown command";
+							String cliResponse = new String(SecurityUtils.encryptMessageAES(r.getBytes(), this.sessionKey,
+									this.sessionIV));
+
+							writer.println(cliResponse);
+						}} catch (InvalidKeyException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						} catch (NoSuchAlgorithmException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						} catch (NoSuchPaddingException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						} catch (IllegalBlockSizeException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						} catch (BadPaddingException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						} catch (InvalidAlgorithmParameterException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
 						}
+						
 					}
 				}
 
