@@ -21,7 +21,7 @@ import util.Config;
  * Please note that this class is not needed for Lab 1, but will later be used
  * in Lab 2. Hence, you do not have to implement it for the first submission.
  */
-public class Nameserver implements INameserverCli, Runnable, INameserver {
+public class Nameserver implements INameserverCli, Runnable, INameserver, Serializable {
 
     private String componentName;
     private Config config;
@@ -29,7 +29,7 @@ public class Nameserver implements INameserverCli, Runnable, INameserver {
     private PrintStream userResponseStream;
 
     private Registry registry;
-    private Map<String, Nameserver> nameserverMap;
+    private Map<String, INameserver> nameserverMap;
     private String rootId;
     private String registryHost;
     private int registryPort;
@@ -58,7 +58,7 @@ public class Nameserver implements INameserverCli, Runnable, INameserver {
 
         // TODO
 
-        this.nameserverMap = new HashMap<String, Nameserver>();
+        this.nameserverMap = new HashMap<String, INameserver>();
         this.userList = new ArrayList<User>();
         this.isRoot = false;
         this.reader = new BufferedReader(new InputStreamReader(System.in));
@@ -75,7 +75,7 @@ public class Nameserver implements INameserverCli, Runnable, INameserver {
             if(!this.config.listKeys().contains("domain")){
                 registry = LocateRegistry.createRegistry(registryPort);
                 remote = (INameserver) UnicastRemoteObject.exportObject(this, 0);
-                registry.bind(this.registryHost, remote);
+                registry.bind(this.rootId, remote);
                 isRoot = true;
 
                 System.out.println("Root-server is up and waiting for commands...");
@@ -99,49 +99,21 @@ public class Nameserver implements INameserverCli, Runnable, INameserver {
                 }
 
 
-            } else if(this.config.getString("domain").equals("at")){
-
-                registerNameserver(this.config.getString("domain"), this, nameserverForChatserver);
+            } else {
+            	
+                INameserver remoteObject = null;
+				try {
+					remoteObject = (INameserver) LocateRegistry.getRegistry(config.getString("registry.host"), config.getInt("registry.port")).lookup("root-nameserver");
+	                System.out.println(remoteObject);
+					remoteObject.registerNameserver(this.config.getString("domain"), this, nameserverForChatserver);
+				} catch (NotBoundException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
+                
+                //registerNameserver(this.config.getString("domain"), this, nameserverForChatserver);
 
                 System.out.println("AT-server is up and waiting for commands...");
-
-                try {
-                    String command;
-                    while ((command = reader.readLine()) != null) {
-
-                        if (command.equals("!nameservers")) {
-                            System.out.print(nameservers());
-                        } else if (command.equals("!addresses")) {
-                            System.out.println(addresses());
-                        } else if (command.equals("!exit")) {
-                            System.out.println(exit());
-                        }
-                    }
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-
-            } else if(this.config.getString("domain").equals("de")){
-                System.out.println("DE-server is up and waiting for commands...");
-
-                try {
-                    String command;
-                    while ((command = reader.readLine()) != null) {
-
-                        if (command.equals("!nameservers")) {
-                            System.out.print(nameservers());
-                        } else if (command.equals("!addresses")) {
-                            System.out.println(addresses());
-                        } else if (command.equals("!exit")) {
-                            System.out.println(exit());
-                        }
-                    }
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-
-            } else if(this.config.getString("domain").equals("vienna.at")){
-                System.out.println("DE-server is up and waiting for commands...");
 
                 try {
                     String command;
@@ -238,11 +210,25 @@ public class Nameserver implements INameserverCli, Runnable, INameserver {
 
     @Override
     public void registerNameserver(String domain, INameserver nameserver, INameserverForChatserver nameserverForChatserver) throws RemoteException, AlreadyRegisteredException, InvalidDomainException {
-        try {
-            INameserver remoteObject = (INameserver) LocateRegistry.getRegistry().lookup("root-nameserver");
-        } catch (NotBoundException e) {
+        //try {
+            //INameserver remoteObject = (INameserver) LocateRegistry.getRegistry(config.getString("registry.host"), config.getInt("registry.port")).lookup("root-nameserver");
+            
+            String[] domainParts = domain.split("\\.");
+            
+            if(nameserverMap.containsKey(domainParts[domainParts.length-1])){
+            	StringBuilder sb = new StringBuilder();
+            	for(int i = 0; i < domainParts.length-1; i++){
+            		sb.append(domainParts[i]+".");
+            	}
+            	registerNameserver(sb.toString(), nameserver, nameserverForChatserver);
+            }else{
+            	System.out.println(domainParts[domainParts.length-1]);
+            	nameserverMap.put(domainParts[domainParts.length-1], nameserver);
+            }
+  
+        /*} catch (NotBoundException e) {
             e.printStackTrace();
-        }
+        }*/
     }
 
     // TODO !!!!!!!!!!!!!!!!!!!!!!!!

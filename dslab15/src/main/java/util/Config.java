@@ -1,5 +1,6 @@
 package util;
 
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.ResourceBundle;
@@ -8,7 +9,7 @@ import java.util.Set;
 /**
  * Reads the configuration from a {@code .properties} file.
  */
-public final class Config {
+public final class Config implements Serializable{
 
 	private final ResourceBundle bundle;
 	private Map<String, Object> properties = new HashMap<>();
