@@ -14,6 +14,7 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
+<<<<<<< Updated upstream
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -27,6 +28,18 @@ import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
+=======
+import java.security.InvalidKeyException;
+import java.security.Key;
+import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+
+import org.bouncycastle.util.encoders.Base64;
+
+import javax.crypto.Mac;
+>>>>>>> Stashed changes
 
 import cli.Command;
 import cli.Shell;
@@ -70,7 +83,8 @@ public class Client implements IClientCli, Runnable {
 		this.config = config;
 		this.userRequestStream = userRequestStream;
 		this.userResponseStream = userResponseStream;
-		this.shell = new Shell(componentName, userRequestStream, userResponseStream);
+		this.shell = new Shell(componentName, userRequestStream,
+				userResponseStream);
 		this.shell.register(this);
 		this.loggedIn = false;
 		this.queue = new ArrayBlockingQueue<String>(1024);
@@ -82,16 +96,19 @@ public class Client implements IClientCli, Runnable {
 	@Override
 	public void run() {
 		SecurityUtils.registerBouncyCastle();
+<<<<<<< Updated upstream
+=======
+
 		System.out.println(getClass().getName()
 				+ " up and waiting for commands!");
 
 		new Thread(shell).start();
 
-
 		try {
-			try{
-				socket = new Socket(config.getString("chatserver.host"), config.getInt("chatserver.tcp.port"));
-			}catch(ConnectException e){
+			try {
+				socket = new Socket(config.getString("chatserver.host"),
+						config.getInt("chatserver.tcp.port"));
+			} catch (ConnectException e) {
 				System.out.println("Server is N/A. Exit in 3 seconds ...");
 				try {
 					Thread.sleep(3000);
@@ -103,13 +120,15 @@ public class Client implements IClientCli, Runnable {
 				System.exit(1);
 			}
 			// create a reader to retrieve messages send by the server
-			tcpSocketInputReader = new BufferedReader(
-					new InputStreamReader(socket.getInputStream()));
+			tcpSocketInputReader = new BufferedReader(new InputStreamReader(
+					socket.getInputStream()));
 			// create a writer to send messages to the server
-			tcpSocketOutputWriter = new PrintWriter(socket.getOutputStream(), true);
-			
-			new ClientTCPListenerThread(socket, queue, lastMessage, usernameThread).start();
-			
+			tcpSocketOutputWriter = new PrintWriter(socket.getOutputStream(),
+					true);
+
+			new ClientTCPListenerThread(socket, queue, lastMessage,
+					usernameThread).start();
+
 		} catch (UnknownHostException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -126,63 +145,73 @@ public class Client implements IClientCli, Runnable {
 		tcpSocketOutputWriter.println(login);
 		String answer;
 		try {
-			synchronized(this){
+			synchronized (this) {
 				answer = queue.take();
 			}
-		
-			if(answer.equals("login success")){
+
+			if (answer.equals("login success")) {
 				loggedIn = true;
 				this.username = username;
 				this.usernameThread.append(username);
 				return "Successfully logged in.";
-			}else{
+			} else {
 				return "Wrong username or password.";
 			}
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
+
 		return null;
 	}
 
 	@Override
 	@Command
 	public String logout() throws IOException {
+<<<<<<< Updated upstream
 		/*if(!checkLogin()){
 			return "You need to login first!";
 		}*/
 		
+=======
+		if (!checkLogin()) {
+			return "You need to login first!";
+		}
+
+>>>>>>> Stashed changes
 		String logout = ("!logout " + username);
 		//tcpSocketOutputWriter.println(logout);
 		this.sendToChatserver(logout);
 		String answer;
 		try {
-			synchronized(this){
+			synchronized (this) {
 				answer = queue.take();
 			}
-		
-			if(answer.equals("logout success")){
+
+			if (answer.equals("logout success")) {
 				loggedIn = false;
 				return "Successfully logged out.";
-			}else{
+			} else {
 				return "Logout failed.";
 			}
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
+
 		return null;
 	}
 
 	@Override
 	@Command
 	public String send(String message) throws IOException {
-		if(!checkLogin()){
+		Key key = Keys.readSecretKey(new File("hmac.key"));
+		System.out.println(key.toString());
+
+		if (!checkLogin()) {
 			return "You need to login first!";
 		}
-		
+
 		String send = ("!send " + username + " " + message);
 		//tcpSocketOutputWriter.println(send);
 		this.sendToChatserver(send);
@@ -195,18 +224,18 @@ public class Client implements IClientCli, Runnable {
 		byte[] buffer = "!list".getBytes();
 		DatagramPacket packet;
 		datagramSocket = new DatagramSocket();
-		
+
 		packet = new DatagramPacket(buffer, buffer.length,
 				InetAddress.getByName(config.getString("chatserver.host")),
 				config.getInt("chatserver.udp.port"));
-		
+
 		datagramSocket.send(packet);
-		
+
 		buffer = new byte[1024];
 		// create a fresh packet
 		packet = new DatagramPacket(buffer, buffer.length);
 		// wait for response-packet from server
-		
+
 		new ClientUDPListenerThread(datagramSocket, packet).start();
 
 		return null;
@@ -215,86 +244,131 @@ public class Client implements IClientCli, Runnable {
 	@Override
 	@Command
 	public String msg(String username, String message) throws IOException {
-		if(!checkLogin()){
+		if (!checkLogin()) {
 			return "You need to login first!";
 		}
+
+		String decryptMsg = username + ("(private)") + ": " + message;
 		
-		String msg = (username + ("(private)")+ ": " + message);
 		String lookup = lookup(username);
 		String[] parts = lookup.split(":");
-		
+
 		Socket socket = new Socket(parts[0], Integer.parseInt(parts[1]));
-		BufferedReader privateInputReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-		PrintWriter privateOutputWriter = new PrintWriter(socket.getOutputStream(), true);
+		BufferedReader privateInputReader = new BufferedReader(
+				new InputStreamReader(socket.getInputStream()));
+		PrintWriter privateOutputWriter = new PrintWriter(
+				socket.getOutputStream(), true);
+
+		Key key;
+
+		try {
+			key = Keys.readSecretKey(new File(config.getString("hmac.key")));
+
+			Mac hMac = Mac.getInstance("HmacSHA256");
+			hMac.init(key);
+			hMac.update(decryptMsg.getBytes());
+			byte[] hash = hMac.doFinal();
+			
+			byte[] encryptedMessage = hash;
+			byte[] base64Message = Base64.encode(encryptedMessage);
+									
+			String msg = new String(base64Message) + " " + (username + ("(private)") + ": " + message);
+
+			privateOutputWriter.println(msg);
+
+		} catch (IOException e2) {
+			// TODO Auto-generated catch block
+			e2.printStackTrace();
+		} catch (NoSuchAlgorithmException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InvalidKeyException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		
-		privateOutputWriter.println(msg);
-		
-		return username + " replied with " + privateInputReader.readLine();
-	
+		String returned = privateInputReader.readLine();
+		if(returned.equals("!ack")){
+			return username + " replied with " + returned;
+
+		}else{
+			return "!tampered " + message;
+		}
+
 	}
 
 	@Override
 	@Command
 	public String lookup(String username) throws IOException {
-		if(!checkLogin()){
+		if (!checkLogin()) {
 			return "You need to login first!";
 		}
-		
+
 		String lookup = ("!lookup " + username);
+<<<<<<< Updated upstream
 		//tcpSocketOutputWriter.println(lookup);
 		this.sendToChatserver(lookup);
 		
+=======
+		tcpSocketOutputWriter.println(lookup);
+
+>>>>>>> Stashed changes
 		try {
-			synchronized(this){
+			synchronized (this) {
 				String answer = queue.take();
-			
-			
-				if(answer.equals("userN/A")){
+
+				if (answer.equals("userN/A")) {
 					return "User N/A";
 				}
-					
+
 				return answer;
 			}
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
-		
+
 		return null;
 	}
 
 	@Override
 	@Command
 	public String register(String privateAddress) throws IOException {
-		if(!checkLogin()){
+		if (!checkLogin()) {
 			return "You need to login first!";
 		}
-		
+
 		String register = ("!register " + privateAddress + " " + username);
+<<<<<<< Updated upstream
 		
 		//tcpSocketOutputWriter.println(register);
 		this.sendToChatserver(register);
 		Integer port = Integer.parseInt(privateAddress.substring(privateAddress.lastIndexOf(":")+1));
+=======
+
+		tcpSocketOutputWriter.println(register);
+		Integer port = Integer.parseInt(privateAddress.substring(privateAddress
+				.lastIndexOf(":") + 1));
+>>>>>>> Stashed changes
 		serverSocket = new ServerSocket(port);
 		new ClientTCPPrivateMessageListener(serverSocket).start();
-		
+
 		try {
-			synchronized(this){
+			synchronized (this) {
 				return queue.take();
 			}
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
+
 		return null;
 	}
-	
+
 	@Override
 	@Command
 	public String lastMsg() throws IOException {
-		if(!checkLogin()){
+		if (!checkLogin()) {
 			return "You need to login first!";
 		}
 		return lastMessage.toString();
@@ -303,19 +377,19 @@ public class Client implements IClientCli, Runnable {
 	@Override
 	@Command
 	public String exit() throws IOException {
-		if(checkLogin()){
+		if (checkLogin()) {
 			logout();
 		}
-		
-		if(socket != null)
+
+		if (socket != null)
 			this.socket.close();
-		if(datagramSocket != null)
+		if (datagramSocket != null)
 			this.datagramSocket.close();
-		if(shell != null)
+		if (shell != null)
 			this.shell.close();
-		if(serverSocket != null)
+		if (serverSocket != null)
 			serverSocket.close();
-		
+
 		return null;
 	}
 
@@ -435,11 +509,11 @@ public class Client implements IClientCli, Runnable {
 			return "!error " + e.getMessage();
 		}
 	}
-	
-	private boolean checkLogin(){
-		if(loggedIn){
+
+	private boolean checkLogin() {
+		if (loggedIn) {
 			return true;
-		}else{
+		} else {
 			return false;
 		}
 	}
