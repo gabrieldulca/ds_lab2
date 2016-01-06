@@ -45,10 +45,10 @@ public final class Keys {
 		 * You can switch to the PasswordReader to read the passwords from the
 		 * command line.
 		 */
-		// PEMReader in = new PEMReader(new FileReader(file), new
-		// PasswordReader(file.getName()));
+		 //PEMReader in = new PEMReader(new FileReader(file), new
+		 //PasswordReader(file.getName()));
 
-		PEMReader in = new PEMReader(new FileReader(file),
+		 PEMReader in = new PEMReader(new FileReader(file),
 				new StaticPasswordReader(file.getName()));
 
 		try {

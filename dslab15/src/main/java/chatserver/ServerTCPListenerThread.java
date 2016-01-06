@@ -63,9 +63,20 @@ public class ServerTCPListenerThread extends Thread {
 				String request;
 				// read client requests
 				while ((request = reader.readLine()) != null) {
+					boolean boo = false;
 					if(!validsession){
+						
 						String response = this.authenticate(request);
+						System.out.println("Sending: "+response);
+						//synchronized(this){
+						
 						writer.println(response);
+						System.out.println("Sent: "+response);
+						boo = true;
+						publicWriter.add(writer);
+						//}
+						break;
+						//writer.flush();
 					}
 					else{
 						
@@ -88,7 +99,7 @@ public class ServerTCPListenerThread extends Thread {
 	
 						writer.flush();
 						if(decryptedRequest.startsWith("!login")){
-							boolean boo = false;
+							
 							for(User u : users){
 								if(u.getUsername().equals(parts[1])){
 									if(u.getPassword().equals(parts[2])){
@@ -104,7 +115,7 @@ public class ServerTCPListenerThread extends Thread {
 							if(!boo)
 								writer.println("login failed");
 						}else if(decryptedRequest.startsWith("!logout")){
-							boolean boo = false;
+							boo = false;
 							for(User u : users){
 								if(u.getUsername().equals(parts[1])){
 									if(u.isOnline()){
@@ -147,7 +158,7 @@ public class ServerTCPListenerThread extends Thread {
 								}
 							}
 						}else if(decryptedRequest.startsWith("!lookup")){
-							boolean boo = false;
+							boolean bool = false;
 							for(User u : users){
 								if(u.getUsername().equals(parts[1])){
 									if(u.isOnline() && u.isRegistered()){
@@ -158,12 +169,12 @@ public class ServerTCPListenerThread extends Thread {
 
 											writer.println(cliResponse);
 											
-											boo = true;
+											bool = true;
 										}
 									}
 								}
 							}
-							if(!boo) {
+							if(!bool) {
 								String r = "userN/A";
 								String cliResponse = new String(SecurityUtils.encryptMessageAES(r.getBytes(), this.sessionKey,
 										this.sessionIV));
@@ -253,6 +264,8 @@ public class ServerTCPListenerThread extends Thread {
 	
 	private String authenticate(String request) {
 		// decrypt client request (RSA):
+		System.out.println("Authenticate");
+
 		String[] args;
 		try {
 			args = new String(SecurityUtils.decryptMessageRSA(request.getBytes(),
@@ -271,6 +284,14 @@ public class ServerTCPListenerThread extends Thread {
 			String username = args[1]; // plain text
 			String clientChallenge = args[2]; // is base64 encoded
 
+			System.out.println("Read: "+username+","+clientChallenge);
+
+			for(User u : users){
+				if(u.getUsername().equals(username)) {
+							u.setOnline(true);
+				}
+			}
+			
 			// read users public key:
 			Config config = new Config("chatserver");
 			File userPubKeyFile = new File(config.getString("keys.dir"), username + ".pub.pem");
@@ -293,6 +314,8 @@ public class ServerTCPListenerThread extends Thread {
 			// respond to users auth-request:
 			String response = String.format("!ok %s %s %s %s", clientChallenge,
 					chatserverChallenge, encodedKey, encodedIv);
+			
+			
 			try {
 				return new String(SecurityUtils.encryptMessageRSA(response.getBytes(),
 						userPublicKey));

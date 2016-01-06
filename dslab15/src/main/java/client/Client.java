@@ -27,6 +27,7 @@ import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
+
 import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.NoSuchAlgorithmException;
@@ -37,7 +38,6 @@ import java.util.concurrent.BlockingQueue;
 import org.bouncycastle.util.encoders.Base64;
 
 import javax.crypto.Mac;
-
 
 import cli.Command;
 import cli.Shell;
@@ -401,9 +401,11 @@ public class Client implements IClientCli, Runnable {
 		String response;
 		this.tcpSocketOutputWriter.println(message);
 		response = this.tcpSocketInputReader.readLine();
+		System.out.println("cs response: "+response);
 		return response;
 	}
 
+	@Command
 	@Override
 	public String authenticate(String username) throws IOException {
 		// get RSA-Keys:
@@ -416,6 +418,7 @@ public class Client implements IClientCli, Runnable {
 				String clientChallenge = SecurityUtils.generateChallenge();
 				String request = String.format("!authenticate %s %s", username, clientChallenge);
 
+				System.out.println("Sending: "+request);
 				// encrypt and send first authentication request:
 				String chatserverResponse;
 				try {
@@ -429,20 +432,24 @@ public class Client implements IClientCli, Runnable {
 					return (e.getMessage());
 				}
 
-				// decode controllers response (should contain AES Key):
+				System.out.println("Sent: "+request);
+
+				System.out.println("Read: "+chatserverResponse);
+				
+				// decode controller's response (should contain AES Key):
 				String[] responseArgs = chatserverResponse.split(" ");
-				String controllerChallenge;
+				String chatserverChallenge;
 				if (responseArgs[0].equals("!ok")) {
 					if (responseArgs[1].equals(clientChallenge)) {
 						// matching clientchallenge. -> continue
-						controllerChallenge = responseArgs[2]; // base64 encoded, leave it that way
+						chatserverChallenge = responseArgs[2]; // base64 encoded, leave it that way
 						this.sessionKey = new SecretKeySpec(SecurityUtils.decode(responseArgs[3]), "AES");
 						this.sessionIV = SecurityUtils.decode(responseArgs[4]);
 						// now try to encode with new AES key to get verification:
 						String cipherText;
 						try {
 							cipherText = new String(SecurityUtils.encryptMessageAES(
-									controllerChallenge.getBytes(), this.sessionKey, this.sessionIV));
+									chatserverChallenge.getBytes(), this.sessionKey, this.sessionIV));
 						}
 						catch (InvalidKeyException | IllegalBlockSizeException | BadPaddingException
 								| NoSuchAlgorithmException | NoSuchPaddingException

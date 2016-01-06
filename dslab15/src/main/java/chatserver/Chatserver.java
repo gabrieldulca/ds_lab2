@@ -11,6 +11,7 @@ import java.net.DatagramSocket;
 import java.net.ServerSocket;
 import java.net.SocketException;
 import java.security.PrivateKey;
+import java.security.Security;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -59,6 +60,8 @@ public class Chatserver implements IChatserverCli, Runnable {
 		this.users = new ArrayList<User>();
 		this.publicWriter = new ArrayList<PrintWriter>();
 		try {
+			
+			Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
 			this.privatekey = Keys.readPrivatePEM(new File (config.getString("key")));
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
