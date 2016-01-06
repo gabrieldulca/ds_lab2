@@ -22,6 +22,7 @@ import cli.Shell;
 import chatserver.ServerTCPListenerThread;
 import util.Config;
 import util.Keys;
+import util.SecurityUtils;
 
 public class Chatserver implements IChatserverCli, Runnable {
 
@@ -70,6 +71,7 @@ public class Chatserver implements IChatserverCli, Runnable {
 
 	@Override
 	public void run() {
+		SecurityUtils.registerBouncyCastle();
 	
 		try {
 			

@@ -11,6 +11,8 @@ import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.BlockingQueue;
 
+import util.SecurityUtils;
+
 /**
  * Thread to listen for incoming connections on the given socket.
  */
@@ -31,6 +33,7 @@ public class ClientTCPListenerThread extends Thread {
 	}
 
 	public void run() {
+		SecurityUtils.registerBouncyCastle();
 
 		while (true) {
 			try {

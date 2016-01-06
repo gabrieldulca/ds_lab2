@@ -81,6 +81,7 @@ public class Client implements IClientCli, Runnable {
 
 	@Override
 	public void run() {
+		SecurityUtils.registerBouncyCastle();
 		System.out.println(getClass().getName()
 				+ " up and waiting for commands!");
 
