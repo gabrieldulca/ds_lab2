@@ -25,8 +25,8 @@ public class Nameserver implements INameserverCli, Runnable, INameserver, Serial
 
     private String componentName;
     private Config config;
-    private InputStream userRequestStream;
-    private PrintStream userResponseStream;
+    transient private InputStream userRequestStream;
+    transient private PrintStream userResponseStream;
 
     private Registry registry;
     private Map<String, INameserver> nameserverMap;
@@ -37,7 +37,7 @@ public class Nameserver implements INameserverCli, Runnable, INameserver, Serial
     private List<User> userList;
     INameserver remote;
     boolean isRoot;
-    BufferedReader reader;
+    transient BufferedReader reader;
 
     /**
      * @param componentName
@@ -104,13 +104,12 @@ public class Nameserver implements INameserverCli, Runnable, INameserver, Serial
                 INameserver remoteObject = null;
 				try {
 					remoteObject = (INameserver) LocateRegistry.getRegistry(config.getString("registry.host"), config.getInt("registry.port")).lookup("root-nameserver");
-	                System.out.println(remoteObject);
 					remoteObject.registerNameserver(this.config.getString("domain"), this, nameserverForChatserver);
 				} catch (NotBoundException e1) {
 					// TODO Auto-generated catch block
 					e1.printStackTrace();
 				}
-                
+                	
                 //registerNameserver(this.config.getString("domain"), this, nameserverForChatserver);
 
                 System.out.println("AT-server is up and waiting for commands...");
@@ -215,15 +214,16 @@ public class Nameserver implements INameserverCli, Runnable, INameserver, Serial
             
             String[] domainParts = domain.split("\\.");
             
-            if(nameserverMap.containsKey(domainParts[domainParts.length-1])){
+            if(this.nameserverMap.containsKey(domainParts[domainParts.length-1])){
             	StringBuilder sb = new StringBuilder();
             	for(int i = 0; i < domainParts.length-1; i++){
             		sb.append(domainParts[i]+".");
             	}
-            	registerNameserver(sb.toString(), nameserver, nameserverForChatserver);
+            	System.out.println(domainParts[domainParts.length-1]);
+            	registerNameserver(sb.toString(), this.nameserverMap.get(domainParts[domainParts.length-1]), nameserverForChatserver);
             }else{
             	System.out.println(domainParts[domainParts.length-1]);
-            	nameserverMap.put(domainParts[domainParts.length-1], nameserver);
+            	this.nameserverMap.put(domainParts[domainParts.length-1], nameserver);
             }
   
         /*} catch (NotBoundException e) {

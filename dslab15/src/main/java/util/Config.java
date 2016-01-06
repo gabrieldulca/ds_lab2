@@ -11,7 +11,7 @@ import java.util.Set;
  */
 public final class Config implements Serializable{
 
-	private final ResourceBundle bundle;
+	private final transient ResourceBundle bundle;
 	private Map<String, Object> properties = new HashMap<>();
 
 	/**
