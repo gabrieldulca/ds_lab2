@@ -14,7 +14,6 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
-<<<<<<< Updated upstream
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -28,7 +27,6 @@ import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
-=======
 import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.NoSuchAlgorithmException;
@@ -39,7 +37,7 @@ import java.util.concurrent.BlockingQueue;
 import org.bouncycastle.util.encoders.Base64;
 
 import javax.crypto.Mac;
->>>>>>> Stashed changes
+
 
 import cli.Command;
 import cli.Shell;
@@ -96,8 +94,6 @@ public class Client implements IClientCli, Runnable {
 	@Override
 	public void run() {
 		SecurityUtils.registerBouncyCastle();
-<<<<<<< Updated upstream
-=======
 
 		System.out.println(getClass().getName()
 				+ " up and waiting for commands!");
@@ -168,17 +164,12 @@ public class Client implements IClientCli, Runnable {
 	@Override
 	@Command
 	public String logout() throws IOException {
-<<<<<<< Updated upstream
-		/*if(!checkLogin()){
-			return "You need to login first!";
-		}*/
-		
-=======
+
 		if (!checkLogin()) {
 			return "You need to login first!";
 		}
 
->>>>>>> Stashed changes
+
 		String logout = ("!logout " + username);
 		//tcpSocketOutputWriter.println(logout);
 		this.sendToChatserver(logout);
@@ -305,14 +296,14 @@ public class Client implements IClientCli, Runnable {
 		}
 
 		String lookup = ("!lookup " + username);
-<<<<<<< Updated upstream
+
 		//tcpSocketOutputWriter.println(lookup);
 		this.sendToChatserver(lookup);
 		
-=======
+
 		tcpSocketOutputWriter.println(lookup);
 
->>>>>>> Stashed changes
+
 		try {
 			synchronized (this) {
 				String answer = queue.take();
@@ -339,17 +330,16 @@ public class Client implements IClientCli, Runnable {
 		}
 
 		String register = ("!register " + privateAddress + " " + username);
-<<<<<<< Updated upstream
+
 		
 		//tcpSocketOutputWriter.println(register);
 		this.sendToChatserver(register);
 		Integer port = Integer.parseInt(privateAddress.substring(privateAddress.lastIndexOf(":")+1));
-=======
+
 
 		tcpSocketOutputWriter.println(register);
-		Integer port = Integer.parseInt(privateAddress.substring(privateAddress
-				.lastIndexOf(":") + 1));
->>>>>>> Stashed changes
+		port = Integer.parseInt(privateAddress.substring(privateAddress.lastIndexOf(":") + 1));
+
 		serverSocket = new ServerSocket(port);
 		new ClientTCPPrivateMessageListener(serverSocket).start();
 
