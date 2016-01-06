@@ -17,7 +17,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * Reads commands from an {@link InputStream}, executes them and writes the
  * result to a {@link OutputStream}.
  */
-public class Shell implements Runnable, Closeable {
+public class Shell implements Runnable, Closeable, Serializable {
 	private static final PrintStream stdout = System.out;
 	private static final InputStream stdin = System.in;
 	private static final char[] EMPTY = new char[0];
