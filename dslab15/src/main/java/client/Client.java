@@ -148,12 +148,13 @@ public class Client implements IClientCli, Runnable {
 	@Override
 	@Command
 	public String logout() throws IOException {
-		if(!checkLogin()){
+		/*if(!checkLogin()){
 			return "You need to login first!";
-		}
+		}*/
 		
 		String logout = ("!logout " + username);
-		tcpSocketOutputWriter.println(logout);
+		//tcpSocketOutputWriter.println(logout);
+		this.sendToChatserver(logout);
 		String answer;
 		try {
 			synchronized(this){
@@ -182,7 +183,8 @@ public class Client implements IClientCli, Runnable {
 		}
 		
 		String send = ("!send " + username + " " + message);
-		tcpSocketOutputWriter.println(send);
+		//tcpSocketOutputWriter.println(send);
+		this.sendToChatserver(send);
 		return null;
 	}
 
@@ -238,7 +240,8 @@ public class Client implements IClientCli, Runnable {
 		}
 		
 		String lookup = ("!lookup " + username);
-		tcpSocketOutputWriter.println(lookup);
+		//tcpSocketOutputWriter.println(lookup);
+		this.sendToChatserver(lookup);
 		
 		try {
 			synchronized(this){
@@ -269,7 +272,8 @@ public class Client implements IClientCli, Runnable {
 		
 		String register = ("!register " + privateAddress + " " + username);
 		
-		tcpSocketOutputWriter.println(register);
+		//tcpSocketOutputWriter.println(register);
+		this.sendToChatserver(register);
 		Integer port = Integer.parseInt(privateAddress.substring(privateAddress.lastIndexOf(":")+1));
 		serverSocket = new ServerSocket(port);
 		new ClientTCPPrivateMessageListener(serverSocket).start();
@@ -405,7 +409,7 @@ public class Client implements IClientCli, Runnable {
 	 * @throws IllegalBlockSizeException
 	 * @throws InvalidKeyException
 	 */
-	private String sendToController(String message) throws IOException {
+	private String sendToChatserver(String message) throws IOException {
 		if (this.sessionKey == null) {
 			return "!error authenticationNeeded";
 		}
