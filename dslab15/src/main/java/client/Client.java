@@ -1,6 +1,7 @@
 package client;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -13,12 +14,25 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 
 import cli.Command;
 import cli.Shell;
 import util.Config;
+import util.Keys;
+import util.SecurityUtils;
 
 public class Client implements IClientCli, Runnable {
 
@@ -37,6 +51,8 @@ public class Client implements IClientCli, Runnable {
 	private StringBuilder lastMessage;
 	private BlockingQueue<String> queue;
 	private ServerSocket serverSocket;
+	private SecretKey sessionKey;
+	private byte[] sessionIV;
 
 	/**
 	 * @param componentName
@@ -311,11 +327,108 @@ public class Client implements IClientCli, Runnable {
 
 	// --- Commands needed for Lab 2. Please note that you do not have to
 	// implement them for the first submission. ---
+	
+	private String sendChatserverRawMessage(String message) throws IOException {
+		String response;
+		this.tcpSocketOutputWriter.println(message);
+		response = this.tcpSocketInputReader.readLine();
+		return response;
+	}
 
 	@Override
 	public String authenticate(String username) throws IOException {
-		// TODO Auto-generated method stub
-		return null;
+		// get RSA-Keys:
+				PublicKey chatserverPublicKey = Keys.readPublicPEM(new File(this.config
+						.getString("chatserver.key")));
+				PrivateKey userPrivateKey = Keys.readPrivatePEM(new File(this.config.getString("keys.dir"),
+						username + ".pem"));
+
+				// generate authentication request:
+				String clientChallenge = SecurityUtils.generateChallenge();
+				String request = String.format("!authenticate %s %s", username, clientChallenge);
+
+				// encrypt and send first authentication request:
+				String chatserverResponse;
+				try {
+					chatserverResponse = new String(SecurityUtils.decryptMessageRSA(
+							this.sendChatserverRawMessage(
+									new String(SecurityUtils.encryptMessageRSA(request.getBytes(),
+											chatserverPublicKey))).getBytes(), userPrivateKey));
+				}
+				catch (InvalidKeyException | IllegalBlockSizeException | BadPaddingException
+						| NoSuchAlgorithmException | NoSuchPaddingException e) {
+					return (e.getMessage());
+				}
+
+				// decode controllers response (should contain AES Key):
+				String[] responseArgs = chatserverResponse.split(" ");
+				String controllerChallenge;
+				if (responseArgs[0].equals("!ok")) {
+					if (responseArgs[1].equals(clientChallenge)) {
+						// matching clientchallenge. -> continue
+						controllerChallenge = responseArgs[2]; // base64 encoded, leave it that way
+						this.sessionKey = new SecretKeySpec(SecurityUtils.decode(responseArgs[3]), "AES");
+						this.sessionIV = SecurityUtils.decode(responseArgs[4]);
+						// now try to encode with new AES key to get verification:
+						String cipherText;
+						try {
+							cipherText = new String(SecurityUtils.encryptMessageAES(
+									controllerChallenge.getBytes(), this.sessionKey, this.sessionIV));
+						}
+						catch (InvalidKeyException | IllegalBlockSizeException | BadPaddingException
+								| NoSuchAlgorithmException | NoSuchPaddingException
+								| InvalidAlgorithmParameterException e) {
+							return "!error " + e.getMessage();
+						}
+						this.tcpSocketOutputWriter.println(cipherText);
+						return "success";
+					}
+					else {
+						return "!error invalidChallenge";
+					}
+				}
+				else {
+					return chatserverResponse;
+				}
+	}
+	
+	/**
+	 * Sends AES encrypted Message (base64 encoded).
+	 * 
+	 * @param message
+	 * @return
+	 * @throws IOException
+	 * @throws InvalidAlgorithmParameterException
+	 * @throws NoSuchPaddingException
+	 * @throws NoSuchAlgorithmException
+	 * @throws BadPaddingException
+	 * @throws IllegalBlockSizeException
+	 * @throws InvalidKeyException
+	 */
+	private String sendToController(String message) throws IOException {
+		if (this.sessionKey == null) {
+			return "!error authenticationNeeded";
+		}
+		String cipherText;
+		try {
+			cipherText = new String(SecurityUtils.encryptMessageAES(message.getBytes(),
+					this.sessionKey, this.sessionIV));
+		}
+		catch (InvalidKeyException | IllegalBlockSizeException | BadPaddingException
+				| NoSuchAlgorithmException | NoSuchPaddingException
+				| InvalidAlgorithmParameterException e) {
+			return "!error " + e.getMessage();
+		}
+		String response = this.sendChatserverRawMessage(cipherText);
+		try {
+			return new String(SecurityUtils.decryptMessageAES(response.getBytes(), this.sessionKey,
+					this.sessionIV));
+		}
+		catch (InvalidKeyException | NoSuchAlgorithmException | NoSuchPaddingException
+				| IllegalBlockSizeException | BadPaddingException
+				| InvalidAlgorithmParameterException e) {
+			return "!error " + e.getMessage();
+		}
 	}
 	
 	private boolean checkLogin(){

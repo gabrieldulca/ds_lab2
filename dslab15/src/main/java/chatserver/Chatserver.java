@@ -1,5 +1,6 @@
 package chatserver;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -9,6 +10,7 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.ServerSocket;
 import java.net.SocketException;
+import java.security.PrivateKey;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -19,6 +21,7 @@ import cli.Command;
 import cli.Shell;
 import chatserver.ServerTCPListenerThread;
 import util.Config;
+import util.Keys;
 
 public class Chatserver implements IChatserverCli, Runnable {
 
@@ -31,6 +34,7 @@ public class Chatserver implements IChatserverCli, Runnable {
 	private Shell shell;
 	private List<User> users;
 	private List<PrintWriter> publicWriter;
+	private PrivateKey privatekey;
 
 	/**
 	 * 
@@ -53,6 +57,12 @@ public class Chatserver implements IChatserverCli, Runnable {
 		this.shell.register(this);
 		this.users = new ArrayList<User>();
 		this.publicWriter = new ArrayList<PrintWriter>();
+		try {
+			this.privatekey = Keys.readPrivatePEM(new File (config.getString("key")));
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		readUsers();
 
 		// TODO
@@ -85,7 +95,7 @@ public class Chatserver implements IChatserverCli, Runnable {
 								}
 						    }
 						});*/
-						executorTCPService.execute(new ServerTCPListenerThread(serverSocket.accept(), users, publicWriter));
+						executorTCPService.execute(new ServerTCPListenerThread(serverSocket.accept(), users, publicWriter, this.privatekey));
 						
 					}
 				}catch(SocketException e){
