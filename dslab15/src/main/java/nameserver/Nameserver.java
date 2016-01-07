@@ -251,14 +251,14 @@ public class Nameserver implements INameserverCli, Runnable, INameserver,
 	
 	@Override
 	public String lookup(String username) throws RemoteException {
-		/*String ret = "";
+		String ret = "";
 
 		for (User u : userList) {
 			if (u.getUsername().equals(username)) {
 				ret += u.getIp();
 			}
 		}
-		*/
+		
 		return "s";
 	}
 	

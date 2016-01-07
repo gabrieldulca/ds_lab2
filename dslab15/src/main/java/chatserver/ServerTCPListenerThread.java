@@ -27,6 +27,7 @@ import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 
 import nameserver.INameserver;
+import nameserver.INameserverForChatserver;
 import nameserver.exceptions.AlreadyRegisteredException;
 import nameserver.exceptions.InvalidDomainException;
 import util.Config;
@@ -185,10 +186,18 @@ public class ServerTCPListenerThread extends Thread {
 								if(u.getUsername().equals(parts[1])){
 									if(u.isOnline() && u.isRegistered()){
 										synchronized(this){
-											String r = u.getIp()+":"+u.getPort();
-											String cliResponse = new String(SecurityUtils.encryptMessageAES(r.getBytes(), this.sessionKey,
-													this.sessionIV));
+											String[] userParts = u.getUsername().split("\\.");
 
+									            INameserverForChatserver nameServerForChatserver = remoteObject;
+									            for (int i = userParts.length-1; i>0; i--) {
+									            	nameServerForChatserver = nameServerForChatserver.getNameserver(userParts[i]);
+									            }
+
+									            String privateAddress = nameServerForChatserver.lookup(userParts[0]);
+									            
+									        String r = privateAddress;
+									        String cliResponse = new String(SecurityUtils.encryptMessageAES(r.getBytes(), this.sessionKey,
+													this.sessionIV));
 											writer.println(cliResponse);
 											
 											bool = true;
