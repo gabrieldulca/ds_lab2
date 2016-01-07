@@ -135,7 +135,6 @@ public class Client implements IClientCli, Runnable {
 	}
 
 	@Override
-	@Command
 	public String login(String username, String password) throws IOException {
 		String login = ("!login " + username + " " + password);
 		tcpSocketOutputWriter.println(login);
@@ -165,9 +164,9 @@ public class Client implements IClientCli, Runnable {
 	@Command
 	public String logout() throws IOException {
 
-		if (!checkLogin()) {
+		/*if (!checkLogin()) {
 			return "You need to login first!";
-		}
+		}*/
 
 
 		String logout = ("!logout " + username);
@@ -199,9 +198,9 @@ public class Client implements IClientCli, Runnable {
 		Key key = Keys.readSecretKey(new File("hmac.key"));
 		System.out.println(key.toString());
 
-		if (!checkLogin()) {
+		/*if (!checkLogin()) {
 			return "You need to login first!";
-		}
+		}*/
 
 		String send = ("!send " + username + " " + message);
 		//tcpSocketOutputWriter.println(send);
@@ -358,9 +357,9 @@ public class Client implements IClientCli, Runnable {
 	@Override
 	@Command
 	public String lastMsg() throws IOException {
-		if (!checkLogin()) {
+		/*if (!checkLogin()) {
 			return "You need to login first!";
-		}
+		}*/
 		return lastMessage.toString();
 	}
 
