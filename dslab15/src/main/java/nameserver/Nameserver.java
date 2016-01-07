@@ -11,7 +11,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import cli.Command;
 import cli.Shell;
 import chatserver.User;
@@ -37,7 +36,7 @@ public class Nameserver implements INameserverCli, Runnable, INameserver,
 	private String registryHost;
 	private int registryPort;
 	private INameserverForChatserver nameserverForChatserver;
-	private List<User> userList;
+	private Map<String, String> usersMap;
 	INameserver remote;
 	boolean isRoot;
 	transient BufferedReader reader;
@@ -64,7 +63,7 @@ public class Nameserver implements INameserverCli, Runnable, INameserver,
 				userResponseStream);
 		this.shell.register(this);
 		this.nameserverMap = new HashMap<String, INameserver>();
-		this.userList = new ArrayList<User>();
+		this.usersMap = new HashMap<String, String>();
 		this.isRoot = false;
 		this.reader = new BufferedReader(new InputStreamReader(System.in));
 	}
@@ -129,6 +128,7 @@ public class Nameserver implements INameserverCli, Runnable, INameserver,
 		if (!nameserverMap.isEmpty()) {
 			for (String s : nameserverMap.keySet()) {
 				ret += i + ". " + s + "\n";
+				i++;
 			}
 		} else {
 			ret = "No Nameservers found.";
@@ -142,9 +142,9 @@ public class Nameserver implements INameserverCli, Runnable, INameserver,
 	public String addresses() throws IOException {
 		String ret = "";
 
-		if (!userList.isEmpty()) {
-			for (User u : userList) {
-				ret += " " + u.getUsername() + " " + u.getIp() + "\n";
+		if (!usersMap.isEmpty()) {
+			for (String s : usersMap.keySet()) {
+				ret += s + "\n";
 			}
 		} else {
 			ret = "No Users found.";
@@ -191,38 +191,48 @@ public class Nameserver implements INameserverCli, Runnable, INameserver,
 			InvalidDomainException {
 		String[] domainParts = domain.split("\\.");
 
-		if (this.nameserverMap.containsKey(domainParts[domainParts.length - 1])) {
-			StringBuilder sb = new StringBuilder();
-			for (int i = 0; i < domainParts.length - 1; i++) {
-				sb.append(domainParts[i]+".");
+		if(domainParts.length > 1){
+			if (this.nameserverMap.containsKey(domainParts[domainParts.length - 1])) {
+				StringBuilder sb = new StringBuilder();
+				for (int i = 0; i < domainParts.length - 1; i++) {
+					sb.append(domainParts[i]+".");
+				}
+				System.out.println("Request for sub-zone '" + sb.toString() + domainParts[domainParts.length - 1] + "'");
+				nameserverMap.get(domainParts[domainParts.length - 1])
+						.registerNameserver(sb.toString(), nameserver,
+								nameserverForChatserver);
+			}else{
+				throw new InvalidDomainException("Domain N/A");
 			}
-			System.out.println("Request for sub-zone '" + sb.toString() + domainParts[domainParts.length - 1] + "'");
-			nameserverMap.get(domainParts[domainParts.length - 1])
-					.registerNameserver(sb.toString(), nameserver,
-							nameserverForChatserver);
-		} else {
+		}else {
+			if(this.nameserverMap.containsKey(domain)){
+				throw new AlreadyRegisteredException("Domain already registered.");
+			}
+				
 			System.out.println("Registering nameserver for zone '" + domainParts[domainParts.length - 1] + "'");
 			nameserverMap.put(domainParts[domainParts.length - 1], nameserver);
 		}
 	}
+	
 
-	// TODO !!!!!!!!!!!!!!!!!!!!!!!!
 	@Override
 	public synchronized void registerUser(String username, String address) throws RemoteException, AlreadyRegisteredException, InvalidDomainException {
-		String[] userParts = username.split("\\.");
+		String []userParts = username.split("\\.");
 
-		if (isRoot) {
-			if (nameserverMap.containsKey(userParts[userParts.length - 1])) { 	// deeper
-																				// zone
-																				// available
-				String newUsername = "";
-				for (int i = 1; i < userParts.length; i++) {
-					newUsername += userParts[i - 1] + ".";
-				}
-				nameserverMap.get(userParts[userParts.length - 1]).registerUser(newUsername, address);
-			} else { // no deeper zone available
-				userList.add(new User(userParts[0], address, true));
+		if(userParts.length > 1){
+			if(nameserverMap.containsKey(userParts[userParts.length-1])){
+				System.out.println("User to Subdomain: " + username);
+				nameserverMap.get(userParts.length-1).registerUser(username.substring(0, username.length() - userParts[userParts.length-1].length() - 1), address);
+			} else {
+				throw new InvalidDomainException("Domain N/A");
 			}
+		} else {
+			if(usersMap.containsKey(username)){
+					throw new AlreadyRegisteredException("User already registered.");
+			}
+				
+			System.out.println("Username " + username + " registered. Address: " + address);
+			usersMap.put(userParts[userParts.length-1], address);
 		}
 	}
 
@@ -238,16 +248,18 @@ public class Nameserver implements INameserverCli, Runnable, INameserver,
 		}
 	}
 
+	
 	@Override
 	public String lookup(String username) throws RemoteException {
-		String ret = "";
+		/*String ret = "";
 
 		for (User u : userList) {
 			if (u.getUsername().equals(username)) {
 				ret += u.getIp();
 			}
 		}
-
-		return ret;
+		*/
+		return "s";
 	}
+	
 }
