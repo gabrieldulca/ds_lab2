@@ -60,13 +60,14 @@ public class Chatserver implements IChatserverCli, Runnable {
 		this.users = new ArrayList<User>();
 		this.publicWriter = new ArrayList<PrintWriter>();
 		try {
-			
+			SecurityUtils.registerBouncyCastle();
 			Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
 			this.privatekey = Keys.readPrivatePEM(new File (config.getString("key")));
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		
 		readUsers();
 
 		// TODO
@@ -100,7 +101,7 @@ public class Chatserver implements IChatserverCli, Runnable {
 								}
 						    }
 						});*/
-						executorTCPService.execute(new ServerTCPListenerThread(serverSocket.accept(), users, publicWriter, this.privatekey));
+						executorTCPService.execute(new ServerTCPListenerThread(serverSocket.accept(), users, config, publicWriter, this.privatekey));
 						
 					}
 				}catch(SocketException e){

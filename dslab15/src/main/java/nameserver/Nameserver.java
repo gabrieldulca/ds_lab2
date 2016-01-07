@@ -185,7 +185,7 @@ public class Nameserver implements INameserverCli, Runnable, INameserver,
 	}
 
 	@Override
-	public void registerNameserver(String domain, INameserver nameserver,
+	public synchronized void registerNameserver(String domain, INameserver nameserver,
 			INameserverForChatserver nameserverForChatserver)
 			throws RemoteException, AlreadyRegisteredException,
 			InvalidDomainException {
@@ -208,21 +208,18 @@ public class Nameserver implements INameserverCli, Runnable, INameserver,
 
 	// TODO !!!!!!!!!!!!!!!!!!!!!!!!
 	@Override
-	public void registerUser(String username, String address)
-			throws RemoteException, AlreadyRegisteredException,
-			InvalidDomainException {
+	public synchronized void registerUser(String username, String address) throws RemoteException, AlreadyRegisteredException, InvalidDomainException {
 		String[] userParts = username.split("\\.");
 
 		if (isRoot) {
-			if (nameserverMap.containsKey(userParts[userParts.length - 1])) { // deeper
+			if (nameserverMap.containsKey(userParts[userParts.length - 1])) { 	// deeper
 																				// zone
 																				// available
 				String newUsername = "";
 				for (int i = 1; i < userParts.length; i++) {
 					newUsername += userParts[i - 1] + ".";
 				}
-				nameserverMap.get(userParts[userParts.length - 1])
-						.registerUser(newUsername, address);
+				nameserverMap.get(userParts[userParts.length - 1]).registerUser(newUsername, address);
 			} else { // no deeper zone available
 				userList.add(new User(userParts[0], address, true));
 			}

@@ -9,6 +9,10 @@ import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.rmi.NotBoundException;
+import java.rmi.RemoteException;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.server.UnicastRemoteObject;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -22,6 +26,9 @@ import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 
+import nameserver.INameserver;
+import nameserver.exceptions.AlreadyRegisteredException;
+import nameserver.exceptions.InvalidDomainException;
 import util.Config;
 import util.Keys;
 import util.SecurityUtils;
@@ -38,17 +45,32 @@ public class ServerTCPListenerThread extends Thread {
 	private String chatserverChallenge;
 	private SecretKey sessionKey;
 	private byte[] sessionIV;
+	private Config config;
 	
-	public ServerTCPListenerThread(Socket socket, List<User> users, List<PrintWriter> publicWriter, PrivateKey privatekey) {
+	public ServerTCPListenerThread(Socket socket, List<User> users, Config config, List<PrintWriter> publicWriter, PrivateKey privatekey) {
 		this.socket = socket;
 		this.users = users;
 		this.publicWriter = publicWriter;
 		this.chatserverPrivateKey = privatekey;
+		this.config = config;
 	}
 
 
 	public void run() {
 		boolean validsession = false;
+		
+		INameserver remoteObject = null;
+		
+
+		try {
+			remoteObject = (INameserver) LocateRegistry.getRegistry(
+					config.getString("registry.host"),
+					config.getInt("registry.port")).lookup("root-nameserver");
+		} catch (RemoteException | NotBoundException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+	
 
 		while (true) {
 			try {
@@ -151,7 +173,7 @@ public class ServerTCPListenerThread extends Thread {
 										String r = "Successfully registered address for " + u.getUsername();
 										String cliResponse = new String(SecurityUtils.encryptMessageAES(r.getBytes(), this.sessionKey,
 												this.sessionIV));
-
+										remoteObject.registerUser(u.getUsername(), u.getIp()+":"+u.getPort());
 										writer.println(cliResponse);
 										
 									}
@@ -203,6 +225,12 @@ public class ServerTCPListenerThread extends Thread {
 							// TODO Auto-generated catch block
 							e.printStackTrace();
 						} catch (InvalidAlgorithmParameterException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						} catch (AlreadyRegisteredException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						} catch (InvalidDomainException e) {
 							// TODO Auto-generated catch block
 							e.printStackTrace();
 						}
