@@ -400,9 +400,15 @@ public class Client implements IClientCli, Runnable {
 	private String sendChatserverRawMessage(String message) throws IOException {
 		String response;
 		this.tcpSocketOutputWriter.println(message);
-		response = this.tcpSocketInputReader.readLine();
-		System.out.println("cs response: "+response);
-		return response;
+		try {
+			response = queue.take();
+			System.out.println("cs response: "+response);
+			return response;
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+
+		return null;
 	}
 
 	@Command
