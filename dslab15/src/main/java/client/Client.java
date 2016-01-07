@@ -436,13 +436,13 @@ public class Client implements IClientCli, Runnable {
 
 				System.out.println("Read: "+chatserverResponse);
 				
-				// decode controller's response (should contain AES Key):
+				// decode chatserver's response (should contain AES Key):
 				String[] responseArgs = chatserverResponse.split(" ");
 				String chatserverChallenge;
 				if (responseArgs[0].equals("!ok")) {
 					if (responseArgs[1].equals(clientChallenge)) {
 						// matching clientchallenge. -> continue
-						chatserverChallenge = responseArgs[2]; // base64 encoded, leave it that way
+						chatserverChallenge = responseArgs[2]; // base64 encoded
 						this.sessionKey = new SecretKeySpec(SecurityUtils.decode(responseArgs[3]), "AES");
 						this.sessionIV = SecurityUtils.decode(responseArgs[4]);
 						// now try to encode with new AES key to get verification:
